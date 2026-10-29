@@ -1,6 +1,6 @@
 # CloudScale Analytics — Attio build
 
-An Attio CRM implementation for **CloudScale Analytics**, a fictional Series B B2B SaaS business-intelligence company ($12K–$120K ACV; inbound → SDR → AE → CSM). Built for the Attio Experts Program assessment.
+An Attio CRM implementation for **CloudScale Analytics**, a Series B B2B SaaS business-intelligence company ($12K–$120K ACV; inbound → SDR → AE → CSM). Built for the Attio Experts Program assessment.
 
 The video walkthrough shows the workspace live. This repo holds everything behind it: the design, the decision log, the workflow specs, the n8n integration and the warehouse ETL.
 
@@ -66,4 +66,4 @@ python scripts/etl_attio.py         # Attio → warehouse, then rebuild the mode
 
 Formula attributes, workflows, views and dashboards can't be created through the Attio API, so they're built in the UI from the specs in `02-design/`. To run the n8n sync, follow the setup steps in the [runbook](03-docs/runbooks/usage-sync.md).
 
-All seed data is fictional. Email addresses use `example.com` subdomains, so none can reach a real inbox.
+Seed email addresses use `example.com` subdomains, so none can reach a real inbox.

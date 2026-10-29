@@ -120,7 +120,7 @@
         0
       ],
       "id": "build-attio-payloads",
-      "notes": "Source: Attio-Experts-Assessment/n8n/build-attio-payloads.js"
+      "notes": "Source: n8n/build-attio-payloads.js"
     },
     {
       "parameters": {

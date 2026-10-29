@@ -314,7 +314,7 @@ In a client engagement the data dictionary, conventions file and handoff pages s
 12. **Script:** warehouse ETL + SQL views (5c).
 13. **Script:** generate data dictionary; write conventions, runbooks and handoff docs (5d).
 
-Script lives in `Attio-Experts-Assessment/scripts/` and is idempotent: it reads existing slugs first and skips anything that exists.
+Script lives in `scripts/` and is idempotent: it reads existing slugs first and skips anything that exists.
 
 ---
 

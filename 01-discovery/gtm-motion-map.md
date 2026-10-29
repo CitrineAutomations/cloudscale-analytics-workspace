@@ -2,7 +2,7 @@
 
 **Phase:** 01 Discovery · **Status:** Final · **Feeds:** 02 Design (data model, workflows, views)
 
-CloudScale is fictional. Facts from the brief are marked **[brief]**. Everything else is a working assumption marked **[assume]**. Assumptions are reasonable for a Series B BI SaaS and can change during Design.
+Facts from the brief are marked **[brief]**. Everything else is a working assumption marked **[assume]**. Assumptions are reasonable for a Series B BI SaaS and can change during Design.
 
 ---
 

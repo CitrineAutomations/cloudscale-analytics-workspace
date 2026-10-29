@@ -2,7 +2,7 @@
 
 **Phase:** 01 Discovery · **Status:** v4 (pricing final) · **Feeds:** [02-design/build-plan.md](../02-design/build-plan.md) (Subscriptions, Product Workspaces, W4, n8n usage sync)
 
-The brief calls CloudScale a "Business Intelligence Platform" and says nothing else about the product. This page defines just enough product for the usage attributes and expansion triggers to make sense. The assessment tests Attio, not product design, so this stays small.
+CloudScale is a business intelligence platform. This page defines the parts of the product the CRM depends on: the plans and pricing, and the usage signals behind the usage attributes and expansion triggers.
 
 **Rule:** a usage field goes into Attio only if a workflow, view or report uses it. Everything else stays in the warehouse or is left out.
 
@@ -19,7 +19,7 @@ CloudScale is **modelled on** two real BI products. It is inspired by them, not 
 
 A company connects its data sources (Postgres, Snowflake, Salesforce, Stripe). Analysts build dashboards and the rest of the company views them. Each customer has one or more **workspaces**, and users belong to **departments** (Finance, Sales, Ops). Higher plans unlock SSO, row-level security and embedding dashboards in the customer's own app.
 
-## 2. Pricing (final, built backward from the brief's $12K–$120K ACV)
+## 2. Pricing (final, built backward from the $12K–$120K ACV)
 
 The base price includes a minimum number of users (Metabase's model). Extra users are billed per user per year. One seat type: anyone who logs in counts. Higher plans unlock features.
 

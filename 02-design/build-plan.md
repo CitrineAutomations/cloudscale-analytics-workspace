@@ -165,7 +165,7 @@ Block-by-block build specs and tests: [workflow-specs.md](workflow-specs.md).
 | W6 | SDR Queue status → Nurture, or Deal stage → Closed Lost → enroll Person in a nurture **Sequence** (3 emails over 21 days); reply or demo request → exit sequence, back to SDR Queue | People, SDR Queue, Deals | **Attio Sequences (native)** |
 | n8n | Supabase usage view → join Attio contracts → upsert Product Workspace by `workspace_id` (company linked by domain) → error branch: retry, then log to `sync_errors` + Slack | Product Workspaces | n8n + Attio API |
 
-W6 covers the brief's "automate lead routing **and follow-up sequences**". Sequences send real email from a connected mailbox, so seed data uses test addresses only (`+test` aliases you own), and no sequence goes live without your approval.
+W6 automates follow-up sequences. Sequences send real email from a connected mailbox, so seed data uses test addresses only (`+test` aliases you own), and no sequence goes live without your approval.
 
 **Demo priority (2–3 min in Video 1):** W1 (Typeform) → W3 (Closed Won handoff) → W4 (usage signal). W2, W5 and W6 are shown in one sentence each.
 
@@ -273,8 +273,6 @@ Attio ──ETL (nightly + webhooks)──▶ Supabase Postgres ──▶ SQL vi
 | **Modelled layer** | SQL views: `dim_company`, `fct_deal`, `fct_subscription`, `fct_workspace_usage`; metrics view for ARR, NRR, GRR, win rate, cycle length. |
 | **rETL** | Already the n8n usage sync above (warehouse → Attio). |
 | **Show** | Run the script live, query `fct_subscription` for ARR by segment, show one chart. |
-
-The brief allows past work here; if time runs short, show the full load + views only and describe incremental.
 
 ## 5d. Documentation method
 

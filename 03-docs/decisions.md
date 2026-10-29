@@ -20,7 +20,7 @@ Related: [build-plan.md](../02-design/build-plan.md) · [field-guide.md](../02-d
 ## Product and pricing
 
 9. **I considered** making up generic usage metrics, **but modelled** CloudScale on Metabase's pricing and usage-analytics data, **because** grounding it in a real BI product meant no signals were missed and every field traces back to something a customer does. *(2026-10-16)*
-10. **I considered** copying Metabase's or Tableau's prices, **but built** custom pricing backward from the brief's $12K–$120K ACV, **because** the brief fixes the deal size, and a sales-led company with SDRs and AEs can't sell $4K deals profitably. *(2026-10-16)*
+10. **I considered** copying Metabase's or Tableau's prices, **but built** custom pricing backward from the $12K–$120K ACV, **because** the deal size is set, and a sales-led company with SDRs and AEs can't sell $4K deals profitably. *(2026-10-16)*
 11. **I considered** a platform fee plus per-user pricing, **but went with** a base price that includes a minimum number of users, **because** it matches how Metabase sells, guarantees the $12K floor, and is one sentence to explain. *(2026-10-16)*
 12. **I considered** Tableau-style Creator and Viewer seats, **but used** a single seat type, **because** it removed three fields, and the "new department" signal already captures usage spreading across a company. *(2026-10-16)*
 
@@ -38,7 +38,7 @@ Related: [build-plan.md](../02-design/build-plan.md) · [field-guide.md](../02-d
 
 ## Integrations and data
 
-19. **I considered** Apollo enrichment for the n8n workflow, **but built** the product usage sync, **because** it ties directly to the brief's expansion requirement and doubles as reverse ETL. *(2026-10-16)*
+19. **I considered** Apollo enrichment for the n8n workflow, **but built** the product usage sync, **because** it ties directly to the expansion requirement and doubles as reverse ETL. *(2026-10-16)*
 20. **I considered** Snowflake or BigQuery, **but used** a separate Supabase Postgres project, **because** it's enough at CloudScale's scale, it's already in my stack, and the same raw-to-modelled-views pattern moves to Snowflake when volume grows. *(2026-10-16)*
 21. **I considered** reusing my existing local Supabase database, **but set up** a separate cloud project, **because** Attio webhooks and n8n need a public URL, and demo data shouldn't mix with real data. *(2026-10-16)*
 22. **I considered** one Company formula that sums ARR only for live subscriptions, **but split it** into a Subscriptions `live_arr` formula plus a plain `sum()` on Companies, **because** Attio formulas can't filter an aggregation, and the helper also lets views show which terms count toward ARR. *(2026-10-19)*

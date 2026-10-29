@@ -4,9 +4,9 @@ An Attio CRM implementation for **CloudScale Analytics**, a Series B B2B SaaS bu
 
 The video walkthrough shows the workspace live. This repo holds everything behind it: the design, the decision log, the workflow specs, the n8n integration and the warehouse ETL.
 
-## Map to the brief
+## What's in the build
 
-| Brief section | What was built | Where |
+| Area | What was built | Where |
 |---|---|---|
 | **1. Workspace setup** | Teams and permissions, naming conventions, role views (SDR Queue, Committee coverage, Onboarding), CS / Leadership dashboard, record page layouts | [build-plan.md §5a–§6](02-design/build-plan.md) |
 | **2. Custom objects and data model** | Two custom objects, **Subscriptions** (one row per contract term) and **Product Workspaces** (one row per product tenant), linked two-way to Companies and Deals. Formula attributes roll contract ARR up to Total ARR on the company | [build-plan.md §1–§4](02-design/build-plan.md), [field-guide.md](02-design/field-guide.md), [decisions.md](03-docs/decisions.md) |

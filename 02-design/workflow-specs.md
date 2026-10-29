@@ -17,7 +17,7 @@ The Attio API cannot create workflows. This page is the click-by-click spec for 
 
 | Check | Why |
 |---|---|
-| Slack connected (admin only, one Slack workspace) | W2a, W3, W3b, W4 and W5 post to channels |
+| Slack connected (admin only, one Slack workspace) | W2a, W3a, W3b, W4 and W5 post to channels |
 | Typeform connected as a **member connection** for the RevOps admin | The Form submitted trigger runs as one member |
 | Form "CloudScale — Talk to us" exists (§W1 form) | W1 trigger needs a form |
 | Teams `SDR — Growth`, `SDR — Enterprise`, `CS` exist | Round robin blocks pick from teams |
@@ -36,13 +36,13 @@ The Attio API cannot create workflows. This page is the click-by-click spec for 
 | W1 | Inbound lead (Typeform) | Typeform Form Submitted | **Typeform (native)** | Per submission |
 | W2a | New Lead Alert | Record added to list (SDR Queue) | **Slack (native)** | Per new queue entry |
 | W2b | Speed-to-lead | List entry updated (SDR Queue, `status`) | — | Per status change |
-| W3 | Closed Won handoff | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
+| W3a | Closed Won handoff | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
 | W3b | Lost renewal → Churned | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
 | W4 | Usage Signal | Record updated (Product Workspaces, `last_synced_at`) | Slack | Hourly × workspaces |
 | W5 | Renewal opens | Recurring schedule (daily 07:00) | Slack | Once a day |
 | W6 | Nurture sequence | List entry updated (SDR Queue, `status`) | **Attio Sequences** | Per status change |
 
-Names match the Attio Workflows list exactly. Attio allows one trigger per workflow, so the lead alert (W2a) and the first-touch stamp (W2b) are separate workflows. W3b shares W3's trigger but handles only lost renewals, so W3 stays focused on Closed Won.
+Names match the Attio Workflows list exactly. Attio allows one trigger per workflow, so the lead alert (W2a) and the first-touch stamp (W2b) are separate workflows. W3b shares W3a's trigger but handles only lost renewals, so W3a stays focused on Closed Won.
 
 **Credits.** Each run uses workspace credits. W4 runs once per workspace for every sync: 6 workspaces × 24 × 30 ≈ 4,300 runs a month. W4 does its cheap checks first and stops early when nothing changed. If credits run short on the trial, change the n8n schedule to every 6 hours. W4 does not need any change.
 
@@ -144,11 +144,11 @@ Optional, if time allows: when the new status is Qualified, also set person `lif
 
 ---
 
-## W3 — Closed Won handoff
+## W3a — Closed Won handoff
 
 **Purpose:** turn a closed deal into subscription changes, start onboarding for a new customer, and hand off to CS.
 
-**Trigger choice:** Attribute value changed fires on creation *and* on update. So a deal that is created already at Closed Won (an import, for example) still runs W3. Record updated does not fire for values set at creation.
+**Trigger choice:** Attribute value changed fires on creation *and* on update. So a deal that is created already at Closed Won (an import, for example) still runs W3a. Record updated does not fire for values set at creation.
 
 | # | Block | Configuration |
 |---|---|---|
@@ -201,7 +201,7 @@ Expansion has no duplicate guard, because running it twice writes the same value
 | Expansion | Move **Northwind — Expansion +30 seats** to Closed Won | `nw26` has 150 seats and the new ARR. `total_arr` updates |
 | Renewal won | Move **Corvid Media — Renewal 2027** to Closed Won | `cv26` Renewed. A new term starts 2026-12-31. `ws-corvid-main` is linked to the new term |
 
-Run the tests in that order. After the tests, reseed (`python scripts/seed_demo.py`) so the demo starts clean. **Verify:** the seed script matches deals and subscriptions by name. Records that W3 created during testing stay in place. Delete them by hand before reseeding.
+Run the tests in that order. After the tests, reseed (`python scripts/seed_demo.py`) so the demo starts clean. **Verify:** the seed script matches deals and subscriptions by name. Records that W3a created during testing stay in place. Delete them by hand before reseeding.
 
 ---
 
@@ -222,7 +222,7 @@ Run the tests in that order. After the tests, reseed (`python scripts/seed_demo.
 
 | Case | Do | Expect |
 |---|---|---|
-| Renewal lost | After the W3 tests, reset Corvid, then move **Corvid Media — Renewal 2027** to Closed Lost with a loss reason | `cv26` Churned. Corvid lifecycle Churned. `#cs-alerts` post |
+| Renewal lost | After the W3a tests, reset Corvid, then move **Corvid Media — Renewal 2027** to Closed Lost with a loss reason | `cv26` Churned. Corvid lifecycle Churned. `#cs-alerts` post |
 
 ---
 
@@ -325,7 +325,7 @@ On 2026-10-22, no seeded term is inside the window. Helix (`hx26`, ends 2027-01-
 
 Where the spec refines the build plan or field guide, the spec wins:
 
-- **Build plan §0:** date math in workflows is resolved. Adjust time supports months. The open point is only whether it accepts a date attribute (W3 1.2).
+- **Build plan §0:** date math in workflows is resolved. Adjust time supports months. The open point is only whether it accepts a date attribute (W3a 1.2).
 - **Build plan §5a:** "workflows default to read-only" is not in the current docs. Confirm it in the trial.
 - **Field guide:** `segment` is set by W1 from company size, then corrected by the SDR. `sourced_by` is set by the SDR only (W1 creates no deal). `health` Watch is set by the CSM only.
-- **Decision log:** add the Slack channel + task pattern, the W3 trigger and duplicate guard, the workspace relink on renewal, the W5 schedule over Delay until, and the W4 new-department option chosen.
+- **Decision log:** add the Slack channel + task pattern, the W3a trigger and duplicate guard, the workspace relink on renewal, the W5 schedule over Delay until, and the W4 new-department option chosen.

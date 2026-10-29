@@ -33,7 +33,7 @@ Related: [build-plan.md](../02-design/build-plan.md) · [field-guide.md](../02-d
 
 ## Workflows and pricing fields
 
-17. **I considered** having W3 calculate ARR, **but the AE enters** `resulting_arr` on the deal and W3 copies it, **because** it keeps the workflow to copying values and avoids depending on math inside Attio workflows. *(2026-10-16)*
+17. **I considered** having W3a calculate ARR, **but the AE enters** `resulting_arr` on the deal and W3a copies it, **because** it keeps the workflow to copying values and avoids depending on math inside Attio workflows. *(2026-10-16)*
 18. **I considered** storing the platform fee or included users as fields, **but left them** in the docs and stored only `price_per_seat`, **because** they're fixed by plan, while the per-seat price is negotiated on Enterprise and needed to quote expansions. *(2026-10-16)*
 
 ## Integrations and data

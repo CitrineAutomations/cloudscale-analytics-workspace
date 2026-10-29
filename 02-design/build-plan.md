@@ -20,7 +20,7 @@ Legend: **API** = created by script through the Attio REST API. **UI** = built b
 | Funnel + time-in-stage reports | Plus and above |
 | Native Sequences from a workflow | "Enroll in sequence" workflow block |
 | Deals object | Enabled (confirmed 2026-10-18) |
-| Date math in workflows (W3 renewal `end_date` = start + 12 months) | **To verify.** Fallback: CSM sets `end_date` on the new term |
+| Date math in workflows (W3a renewal `end_date` = start + 12 months) | **To verify.** Fallback: CSM sets `end_date` on the new term |
 
 ---
 
@@ -113,7 +113,7 @@ What each field means, who sets it and what uses it: [field-guide.md](field-guid
 | Name | `name` | text | e.g. "Acme — 2026–27" | API |
 | Status | `status` | status | Onboarding, Active, Renewal Due, Renewed, Churned | API |
 | Plan | `plan` | select | Growth, Business, Enterprise (pricing in product profile §2) | API |
-| ARR | `arr` | currency (USD) | Base price + (seats − included) × price per seat. Set by W3. | API |
+| ARR | `arr` | currency (USD) | Base price + (seats − included) × price per seat. Set by W3a. | API |
 | Seats purchased | `seats_purchased` | number | Never below the plan's included users | API |
 | Price per seat | `price_per_seat` | currency (USD) | Extra-user rate; negotiated on Enterprise | API |
 | Start date | `start_date` | date | | API |
@@ -160,7 +160,7 @@ Block-by-block build specs and tests: [workflow-specs.md](workflow-specs.md).
 | W1 — Inbound lead (Typeform) | Typeform submit → upsert Person + Company, set source/UTM/intent, lifecycle = MQL → add to SDR Queue, round-robin SDR by segment, set `sla_due_at` | People, Companies, SDR Queue | **Typeform (native)** |
 | W2a — New Lead Alert | SDR Queue entry created → post in `#sdr-leads` + first-touch task for the SDR; `sla_due_at` passed and status still New → Slack alert to SDR lead | SDR Queue | **Slack (native)** |
 | W2b — Speed-to-lead | SDR Queue status leaves New → stamp `first_touch_at` on the person, for the speed-to-lead report | SDR Queue, People | Attio |
-| W3 — Closed Won handoff | Deal stage → Closed Won. **New:** create Subscription (status Onboarding) with `plan`, `seats_purchased`, `price_per_seat` and `arr` copied from the deal (`arr` = `resulting_arr`), link originating deal, set company lifecycle = Customer, assign CSM, add to Onboarding, Slack handoff. **Expansion:** update the linked subscription's `plan`, `seats_purchased`, `price_per_seat` and `arr` from the deal, then Slack the CSM. **Renewal:** set the old term (`renews_subscription`) to Renewed; create the next term (status Active, no onboarding) with `plan`, `seats_purchased`, `price_per_seat` and `arr` from the deal, `start_date` = old `end_date`, `end_date` = start + 12 months, link it as `created_subscription`; Slack the CSM. | Deals, Subscriptions, Onboarding | Attio + Slack |
+| W3a — Closed Won handoff | Deal stage → Closed Won. **New:** create Subscription (status Onboarding) with `plan`, `seats_purchased`, `price_per_seat` and `arr` copied from the deal (`arr` = `resulting_arr`), link originating deal, set company lifecycle = Customer, assign CSM, add to Onboarding, Slack handoff. **Expansion:** update the linked subscription's `plan`, `seats_purchased`, `price_per_seat` and `arr` from the deal, then Slack the CSM. **Renewal:** set the old term (`renews_subscription`) to Renewed; create the next term (status Active, no onboarding) with `plan`, `seats_purchased`, `price_per_seat` and `arr` from the deal, `start_date` = old `end_date`, `end_date` = start + 12 months, link it as `created_subscription`; Slack the CSM. | Deals, Subscriptions, Onboarding | Attio + Slack |
 | W3b — Lost renewal → Churned | Renewal deal → Closed Lost → set the old term to Churned; if the company has no other live subscription, lifecycle = Churned; alert `#cs-alerts` | Deals, Subscriptions, Companies | Attio + Slack |
 | W4 — Usage Signal | Workspace usage updated → evaluate the expansion and risk rules in [product profile §4](../01-discovery/product-profile.md#4-triggers-w4). **Act only when `usage_signal` or `expansion_reason` changes.** Expansion: set reason + CSM task. Risk: Slack alert to CSM. Roll up `health` to Company (worst signal wins). | Product Workspaces, Companies | Attio + Slack |
 | W5 — Renewal opens | Subscription end date − 90 days → create Renewal deal, link `renewal_deal`, status = Renewal Due | Subscriptions, Deals | Attio |
@@ -169,7 +169,7 @@ Block-by-block build specs and tests: [workflow-specs.md](workflow-specs.md).
 
 W6 automates follow-up sequences. Sequences send real email from a connected mailbox, so seed data uses test addresses only (`+test` aliases you own), and no sequence goes live without your approval.
 
-**Demo priority (2–3 min in Video 1):** W1 (Typeform) → W3 (Closed Won handoff) → W4 (Usage Signal). W2a, W2b, W3b, W5 and W6 are shown in one sentence each.
+**Demo priority (2–3 min in Video 1):** W1 (Typeform) → W3a (Closed Won handoff) → W4 (Usage Signal). W2a, W2b, W3b, W5 and W6 are shown in one sentence each.
 
 ### n8n workflow — endpoints used
 

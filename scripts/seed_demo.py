@@ -11,7 +11,7 @@ subscriptions in every status (22 terms), 20 workspaces whose signals match the 
 built, three accounts in onboarding, and SDR Queue entries in every status.
 
 Pause the Attio workflows and the n8n usage sync before running: seeded Closed Won / Closed
-Lost deals and workspace updates would otherwise fire W3, W3b, W4 and W6.
+Lost deals and workspace updates would otherwise fire W3a, W3b, W4 and W6.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -130,7 +130,7 @@ PEOPLE = [
 
 # key, name, company, status, plan, seats, rate, start, end, auto_renew
 SUBSCRIPTIONS = [
-    # nw26 at 150 seats and the Corvid renewal (cv26 Renewed, cv27 Active) match the W3 test runs.
+    # nw26 at 150 seats and the Corvid renewal (cv26 Renewed, cv27 Active) match the W3a test runs.
     ("nw26", "Northwind Logistics — 2026–27", "northwind", "Active", "Business", 150, None, "2026-03-01", "2027-02-28", True),
     ("bp26", "Brightpath Health — 2026–27", "brightpath", "Active", "Growth", 40, None, "2026-05-01", "2027-04-30", True),
     ("qr25", "Quantum Retail Group — 2025–26", "quantum", "Renewed", "Enterprise", 240, None, "2025-06-01", "2026-05-31", False),

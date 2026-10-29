@@ -1,0 +1,99 @@
+{
+  "name": "CloudScale sync error handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "on-workflow-error"
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/sync_errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow: $json.workflow.name, node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, payload: { execution_id: $json.execution.id, url: $json.execution.url } }) }}",
+        "options": {}
+      },
+      "name": "Log run failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        -100
+      ],
+      "id": "log-run-failure",
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase CloudScale"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "PASTE_SLACK_INCOMING_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `:rotating_light: ${$json.workflow.name} failed at \"${$json.execution.lastNodeExecuted}\": ${$json.execution.error.message}\n${$json.execution.url}` }) }}",
+        "options": {}
+      },
+      "name": "Slack run failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        100
+      ],
+      "id": "slack-run-failure",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Log run failure",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack run failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

@@ -1,0 +1,345 @@
+{
+  "name": "CloudScale usage sync (rETL)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "every-hour"
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "method": "GET",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/workspace_usage_latest",
+        "options": {}
+      },
+      "name": "Fetch usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "fetch-usage",
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase CloudScale"
+        }
+      },
+      "notes": "Supabase mock product DB. One item per workspace.",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://api.attio.com/v2/objects/subscriptions/records/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"limit\": 500}",
+        "options": {}
+      },
+      "name": "Get subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "get-subscriptions",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Attio API"
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://api.attio.com/v2/objects/product_workspaces/records/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"limit\": 500}",
+        "options": {}
+      },
+      "name": "Get Attio workspaces",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "get-attio-workspaces",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Attio API"
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node \"Build Attio payloads\" (Run Once for All Items) in usage-sync.json.\n// Kept here so it can be read, diffed and tested outside n8n; paste changes into the node.\n//\n// Inputs (earlier nodes):\n//   Fetch usage           one item per workspace from Supabase workspace_usage_latest\n//   Get subscriptions     Attio subscriptions query (seats_purchased per contract)\n//   Get Attio workspaces  Attio product_workspaces query (which contract covers each workspace)\n// Output: one item per workspace, { workspace_id, values } ready for the Attio upsert.\n//\n// Seat utilisation is per contract: seats are shared across all workspaces on one subscription,\n// so Quantum US (120) + EU (80) on 260 seats is 76.9% for both. Decision 16: calculated here,\n// not as an Attio formula. usage_signal / expansion_reason are left alone; W4 owns them.\n\nconst usage = $('Fetch usage').all().map(i => i.json);\nconst subs = $('Get subscriptions').first().json.data;\nconst attioWorkspaces = $('Get Attio workspaces').first().json.data;\n\nconst first = (values, key, field = 'value') => values[key]?.[0]?.[field] ?? null;\n\nconst seatsBySub = Object.fromEntries(\n  subs.map(s => [s.id.record_id, first(s.values, 'seats_purchased')]),\n);\nconst subByWorkspace = Object.fromEntries(\n  attioWorkspaces.map(w => [first(w.values, 'workspace_id'), first(w.values, 'subscription', 'target_record_id')]),\n);\n\nconst usedBySub = {};\nfor (const u of usage) {\n  const sub = subByWorkspace[u.workspace_id];\n  if (sub) usedBySub[sub] = (usedBySub[sub] ?? 0) + u.seats_used;\n}\n\nconst syncedAt = new Date().toISOString();\n\nreturn usage.map(u => {\n  const sub = subByWorkspace[u.workspace_id];\n  const seats = sub ? seatsBySub[sub] : null;\n  const values = {\n    workspace_id: u.workspace_id,\n    name: u.workspace_name,\n    // Linked by domain on every sync; a brand-new workspace attaches to its company on first sync.\n    // A new workspace has no subscription yet, so the CSM links it and utilisation fills next hour.\n    company: [{ target_object: 'companies', domains: [{ domain: u.company_domain }] }],\n    seats_used: u.seats_used,\n    seat_utilisation: seats ? Math.round((1000 * usedBySub[sub]) / seats) / 10 : null,\n    weekly_active_users: u.weekly_active_users,\n    wau_change_30d: u.wau_change_30d,\n    departments_active: u.departments_active,\n    paywall_hits_30d: u.paywall_hits_30d,\n    last_active_at: u.last_active_at,\n    last_synced_at: syncedAt,\n  };\n  // Attio rejects null for number attributes, so leave unknowns out instead. A new workspace has\n  // no subscription (no seat_utilisation) and no 30-day history (no wau_change_30d) yet.\n  for (const key of Object.keys(values)) if (values[key] === null) delete values[key];\n  return { json: { workspace_id: u.workspace_id, values } };\n});\n"
+      },
+      "name": "Build Attio payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "build-attio-payloads",
+      "notes": "Source: Attio-Experts-Assessment/n8n/build-attio-payloads.js"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "PUT",
+        "url": "https://api.attio.com/v2/objects/product_workspaces/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "matching_attribute",
+              "value": "workspace_id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: { values: $json.values } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 10,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "name": "Upsert workspace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "upsert-workspace",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Attio API"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "Upsert on workspace_id, so syncs never create duplicates. Batched under Attio's 25 writes/s.",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "method": "POST",
+        "url": "https://YOUR_PROJECT_REF.supabase.co/rest/v1/sync_errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow: 'CloudScale usage sync', node: 'Upsert workspace', workspace_id: $('Build Attio payloads').item.json.workspace_id, error: $json.error ? JSON.stringify($json.error) : `No error detail on the item; open n8n execution ${$execution.id} for the Attio response`, payload: $('Build Attio payloads').item.json.values }) }}",
+        "options": {}
+      },
+      "name": "Log failed row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ],
+      "id": "log-failed-row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase CloudScale"
+        }
+      },
+      "notes": "Payload stored so the row can be replayed (runbook).",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $('Build Attio payloads').all().length;\nconst failed = $input.all().length;\nreturn [{ json: { text: `:warning: CloudScale usage sync: ${failed} of ${ids} workspaces failed to upsert into Attio. Rows logged in Supabase sync_errors; replay per runbook.` } }];"
+      },
+      "name": "Count failures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ],
+      "id": "count-failures",
+      "notes": "One Slack message per run, not one per failed row."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "PASTE_SLACK_INCOMING_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
+        "options": {}
+      },
+      "name": "Slack alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        200
+      ],
+      "id": "slack-alert",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Fetch usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch usage": {
+      "main": [
+        [
+          {
+            "node": "Get subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Get Attio workspaces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Attio workspaces": {
+      "main": [
+        [
+          {
+            "node": "Build Attio payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Attio payloads": {
+      "main": [
+        [
+          {
+            "node": "Upsert workspace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert workspace": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Log failed row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log failed row": {
+      "main": [
+        [
+          {
+            "node": "Count failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count failures": {
+      "main": [
+        [
+          {
+            "node": "Slack alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "",
+    "timezone": "UTC"
+  },
+  "active": false,
+  "pinData": {}
+}

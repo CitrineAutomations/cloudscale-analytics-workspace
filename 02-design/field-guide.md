@@ -32,7 +32,7 @@ What each field means, what fills it, and what uses it. Every custom field has a
 | `lead_source` | How they first came in: Demo request, Content download, Webinar, Contact sales, Outbound, Referral | W1 (from Typeform) / SDR | "Leads by source" report |
 | `utm_campaign`, `utm_source` | The marketing campaign and channel behind the lead | W1 (hidden Typeform fields) | Campaign attribution in the warehouse |
 | `form_intent` | High (demo / contact sales) or Low (content download) | W1 | SDR prioritisation; low intent goes to nurture |
-| `first_touch_at` | When an SDR first contacted them | SDR / W2 | "Speed-to-lead" report against the 1-hour SLA |
+| `first_touch_at` | When an SDR first contacted them | SDR / W2b | "Speed-to-lead" report against the 1-hour SLA |
 | `product_workspaces` | Workspaces this person uses | Relationship | Shows whether a deal's champion or evaluator actually uses the product |
 
 ## Deals
@@ -40,7 +40,7 @@ What each field means, what fills it, and what uses it. Every custom field has a
 | Field | What it means | Set by | Used by |
 |---|---|---|---|
 | `name` | Deal name, e.g. "Acme — Expansion +30 seats" | AE | Views |
-| `stage` | Pipeline stage, Demo Scheduled → Closed Won / Lost | AE | Pipeline, stage conversion and time-in-stage reports; W3 and W6 triggers |
+| `stage` | Pipeline stage, Demo Scheduled → Closed Won / Lost | AE | Pipeline, stage conversion and time-in-stage reports; W3 and W3b triggers |
 | `owner` | The AE | Std / AE | AE views |
 | `value` | **ARR this deal adds.** New = full ARR; Expansion = the increase; Renewal = the change at renewal (often $0). | AE | Pipeline report; expansion ARR in the warehouse |
 | `associated_company`, `associated_people` | Account and everyone involved in the deal (end users, security, procurement) | Std / AE | Record page |
@@ -53,10 +53,10 @@ What each field means, what fills it, and what uses it. Every custom field has a
 | `price_per_seat` | Extra-user rate: list ($240 / $200) or negotiated | AE | Copied to the subscription by W3; quoting future seat expansions |
 | `resulting_arr` | Subscription ARR after this deal closes | AE | Copied to `arr` by W3 (no math inside the workflow) |
 | `close_date` | Expected or actual close date | AE | Forecast views |
-| `loss_reason` | Why a deal was lost | AE at Closed Lost | Loss analysis; W6 nurture |
+| `loss_reason` | Why a deal was lost | AE at Closed Lost | Loss analysis; W3b churn alert |
 | `sourced_by` | SDR who booked the demo | W1 / SDR | SDR credit and pipeline-sourced reporting |
 | `created_subscription` | The subscription this deal created (a new customer's first term, or the next term after a renewal) | W3 | Links revenue to the deal that won it |
-| `renews_subscription` | The term this renewal deal renews | W5 | W3 marks it Renewed (won) or Churned (lost) |
+| `renews_subscription` | The term this renewal deal renews | W5 | W3 marks it Renewed (won), W3b marks it Churned (lost) |
 | `expands_subscription` | The subscription this expansion deal grows | AE (or CSM when opening it) | Tells W3 which subscription to update |
 
 ## Subscriptions
@@ -64,7 +64,7 @@ What each field means, what fills it, and what uses it. Every custom field has a
 | Field | What it means | Set by | Used by |
 |---|---|---|---|
 | `name` | Contract term, e.g. "Acme — 2026–27" | W3 | Views |
-| `status` | Onboarding → Active → Renewal Due → Renewed, or Churned | W3 (Onboarding for new; Active for a renewed term; Renewed / Churned on the old term), CSM (Active after onboarding), W5 (Renewal Due) | `live_arr`; CS views |
+| `status` | Onboarding → Active → Renewal Due → Renewed, or Churned | W3 (Onboarding for new; Active for a renewed term; Renewed on the old term), W3b (Churned), CSM (Active after onboarding), W5 (Renewal Due) | `live_arr`; CS views |
 | `plan` | Current plan | W3 | ARR-by-plan report; paywall context for W4 |
 | `arr` | Current annual recurring revenue on this term | W3 | `live_arr`; ARR report; warehouse ARR/NRR/GRR |
 | `seats_purchased` | Seats paid for; never below the plan's included users | W3 | n8n seat-utilisation calculation |
@@ -102,8 +102,8 @@ What each field means, what fills it, and what uses it. Every custom field has a
 
 | Field | What it means | Set by | Used by |
 |---|---|---|---|
-| `status` | New → Contacted → Qualified, or Nurture / Disqualified | W1 (New), SDR | W2 SLA alert; W6 nurture trigger; time-in-stage |
-| `sla_due_at` | When first contact is due (created + 1 hour) | W1 | W2 overdue alert |
+| `status` | New → Contacted → Qualified, or Nurture / Disqualified | W1 (New), SDR | W2a SLA alert; W2b first touch; W6 nurture trigger; time-in-stage |
+| `sla_due_at` | When first contact is due (created + 1 hour) | W1 | W2a overdue alert |
 | `dq_reason` | Why the lead was disqualified | SDR | Lead-quality feedback to marketing |
 
 ### Onboarding (Companies)

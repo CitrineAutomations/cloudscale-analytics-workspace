@@ -17,7 +17,7 @@ The Attio API cannot create workflows. This page is the click-by-click spec for 
 
 | Check | Why |
 |---|---|
-| Slack connected (admin only, one Slack workspace) | W2–W5 post to channels |
+| Slack connected (admin only, one Slack workspace) | W2a, W3, W3b, W4 and W5 post to channels |
 | Typeform connected as a **member connection** for the RevOps admin | The Form submitted trigger runs as one member |
 | Form "CloudScale — Talk to us" exists (§W1 form) | W1 trigger needs a form |
 | Teams `SDR — Growth`, `SDR — Enterprise`, `CS` exist | Round robin blocks pick from teams |
@@ -33,22 +33,22 @@ The Attio API cannot create workflows. This page is the click-by-click spec for 
 
 | # | Name | Trigger | Integration | Runs |
 |---|---|---|---|---|
-| W1 | Inbound lead capture + routing | Typeform Form Submitted | **Typeform (native)** | Per submission |
-| W2a | New lead alert + SLA watch | Record added to list (SDR Queue) | **Slack (native)** | Per new queue entry |
-| W2b | Stamp first touch | List entry updated (SDR Queue, `status`) | — | Per status change |
-| W3 | Closed deal handoff | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
-| W4 | Usage signal | Record updated (Product Workspaces, `last_synced_at`) | Slack | Hourly × workspaces |
-| W5 | Open renewals | Recurring schedule (daily 07:00) | Slack | Once a day |
-| W6a | Nurture from SDR Queue | List entry updated (SDR Queue, `status`) | **Attio Sequences** | Per status change |
-| W6b | Nurture from lost deal | Attribute value changed (Deals, `stage`) | **Attio Sequences** | Per stage change |
+| W1 | Inbound lead (Typeform) | Typeform Form Submitted | **Typeform (native)** | Per submission |
+| W2a | New Lead Alert | Record added to list (SDR Queue) | **Slack (native)** | Per new queue entry |
+| W2b | Speed-to-lead | List entry updated (SDR Queue, `status`) | — | Per status change |
+| W3 | Closed Won handoff | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
+| W3b | Lost renewal → Churned | Attribute value changed (Deals, `stage`) | Slack | Per stage change |
+| W4 | Usage Signal | Record updated (Product Workspaces, `last_synced_at`) | Slack | Hourly × workspaces |
+| W5 | Renewal opens | Recurring schedule (daily 07:00) | Slack | Once a day |
+| W6 | Nurture sequence | List entry updated (SDR Queue, `status`) | **Attio Sequences** | Per status change |
 
-Attio allows one trigger per workflow. That is why W2 and W6 each have two workflows.
+Names match the Attio Workflows list exactly. Attio allows one trigger per workflow, so the lead alert (W2a) and the first-touch stamp (W2b) are separate workflows. W3b shares W3's trigger but handles only lost renewals, so W3 stays focused on Closed Won.
 
 **Credits.** Each run uses workspace credits. W4 runs once per workspace for every sync: 6 workspaces × 24 × 30 ≈ 4,300 runs a month. W4 does its cheap checks first and stops early when nothing changed. If credits run short on the trial, change the n8n schedule to every 6 hours. W4 does not need any change.
 
 ---
 
-## W1 — Inbound lead capture + routing
+## W1 — Inbound lead (Typeform)
 
 **Purpose:** create or update the person and company from a form fill, set source and intent, route to an SDR (or to the CSM for an existing customer), and put the lead in the SDR Queue or in nurture.
 
@@ -89,7 +89,7 @@ Company size drives the segment because routing happens before an SDR has qualif
 | 9c | false → **Add record to list** | SDR Queue. `status` = Nurture. No SLA |
 | 9d | false → **Enroll in sequence** | Nurture — 21 days. Recipient: `{2 > record}`. Sender: the test mailbox |
 
-**Why step 9d enrolls directly:** W6a fires on a status *change*. List entry updated does not fire for values set when the entry is created. So a low-intent lead must be enrolled in W1.
+**Why step 9d enrolls directly:** W6 fires on a status *change*. List entry updated does not fire for values set when the entry is created. So a low-intent lead must be enrolled in W1.
 
 **Repeat submissions:** every high-intent form fill adds a new SDR Queue entry. Attio allows several entries for one person. Each inbound request gets its own SLA and its own speed-to-lead data point.
 
@@ -104,7 +104,7 @@ Company size drives the segment because routing happens before an SDR has qualif
 
 ---
 
-## W2a — New lead alert + SLA watch
+## W2a — New Lead Alert
 
 **Purpose:** tell the SDR about a new lead now, and escalate to the SDR lead if nobody has touched the lead by `sla_due_at`.
 
@@ -130,7 +130,7 @@ The SLA is one clock hour. It ignores business hours. The SDR lead sees nights a
 
 ---
 
-## W2b — Stamp first touch
+## W2b — Speed-to-lead
 
 **Purpose:** set `first_touch_at` when the SDR first moves a lead out of New. The speed-to-lead report compares this field with the entry's created time.
 
@@ -144,7 +144,7 @@ Optional, if time allows: when the new status is Qualified, also set person `lif
 
 ---
 
-## W3 — Closed deal handoff
+## W3 — Closed Won handoff
 
 **Purpose:** turn a closed deal into subscription changes, start onboarding for a new customer, and hand off to CS.
 
@@ -153,7 +153,7 @@ Optional, if time allows: when the new status is Qualified, also set person `lif
 | # | Block | Configuration |
 |---|---|---|
 | T | **Attribute value changed** | Object: Deals. Attribute: `stage` |
-| 1 | **Switch** | Case 1: stage Closed Won AND `deal_type` New. Case 2: Closed Won AND Expansion. Case 3: Closed Won AND Renewal. Case 4: Closed Lost AND Renewal. Default: end. A lost New or Expansion deal goes to W6b |
+| 1 | **Switch** | Case 1: stage Closed Won AND `deal_type` New. Case 2: Closed Won AND Expansion. Case 3: Closed Won AND Renewal. Default: end. A lost renewal is handled by W3b |
 
 ### Case 1 — New customer
 
@@ -192,15 +192,6 @@ Expansion has no duplicate guard, because running it twice writes the same value
 | 3.8 | **Loop** over `{3.7}` → **Update record** | Product Workspaces: `subscription` = `{3.6 > record}`. The n8n sync calculates seat utilisation from the linked term. Without this step, utilisation would use the old term's seats |
 | 3.9 | **Post message to channel** | `#cs-handoffs`: "Renewed: {company}, {plan}, {resulting_arr} ARR, new term to {3.5}." |
 
-### Case 4 — Renewal lost
-
-| # | Block | Configuration |
-|---|---|---|
-| 4.1 | **Update record** | Subscriptions `{T > renews_subscription}`: `status` = Churned |
-| 4.2 | **Find records** | Subscriptions. Filter: `company` = deal company AND `status` is Onboarding, Active or Renewal Due. This step runs after 4.1, so the churned term is not counted |
-| 4.3 | **If** | `{4.2 > Number of matches}` = 0 → **Update record** Companies `lifecycle_stage` = Churned |
-| 4.4 | **Post message to channel** | `#cs-alerts`: "Churned: {company}, {loss_reason}. {old term ARR} ARR lost." |
-
 ### Test
 
 | Case | Do | Expect |
@@ -209,13 +200,33 @@ Expansion has no duplicate guard, because running it twice writes the same value
 | Duplicate guard | Move Orbit to Negotiation, then back to Closed Won | No second subscription |
 | Expansion | Move **Northwind — Expansion +30 seats** to Closed Won | `nw26` has 150 seats and the new ARR. `total_arr` updates |
 | Renewal won | Move **Corvid Media — Renewal 2027** to Closed Won | `cv26` Renewed. A new term starts 2026-12-31. `ws-corvid-main` is linked to the new term |
-| Renewal lost | Reset Corvid, then move the renewal to Closed Lost with a loss reason | `cv26` Churned. Corvid lifecycle Churned. `#cs-alerts` post |
 
 Run the tests in that order. After the tests, reseed (`python scripts/seed_demo.py`) so the demo starts clean. **Verify:** the seed script matches deals and subscriptions by name. Records that W3 created during testing stay in place. Delete them by hand before reseeding.
 
 ---
 
-## W4 — Usage signal
+## W3b — Lost renewal → Churned
+
+**Purpose:** when a renewal is lost, end the contract and update the account, so Total ARR drops on its own.
+
+| # | Block | Configuration |
+|---|---|---|
+| T | **Attribute value changed** | Object: Deals. Attribute: `stage` |
+| 1 | **Filter** | Stage is Closed Lost AND `deal_type` is Renewal |
+| 2 | **Update record** | Subscriptions `{T > renews_subscription}`: `status` = Churned |
+| 3 | **Find records** | Subscriptions. Filter: `company` = deal company AND `status` is Onboarding, Active or Renewal Due. This step runs after step 2, so the churned term is not counted |
+| 4 | **If** | `{3 > Number of matches}` = 0 → **Update record** Companies `lifecycle_stage` = Churned |
+| 5 | **Post message to channel** | `#cs-alerts`: "Churned: {company}, {loss_reason}. {old term ARR} ARR lost." |
+
+### Test
+
+| Case | Do | Expect |
+|---|---|---|
+| Renewal lost | After the W3 tests, reset Corvid, then move **Corvid Media — Renewal 2027** to Closed Lost with a loss reason | `cv26` Churned. Corvid lifecycle Churned. `#cs-alerts` post |
+
+---
+
+## W4 — Usage Signal
 
 **Purpose:** after each usage sync, work out the workspace's signal. Act only when the signal or the reason changes (decision 15). Roll the result up to company `health`.
 
@@ -258,7 +269,7 @@ Without option A, the first sync sets Brightpath (seeded as New department, depa
 
 ---
 
-## W5 — Open renewals
+## W5 — Renewal opens
 
 **Purpose:** 90 days before a term ends, open a renewal deal, link it, and set the term to Renewal Due.
 
@@ -286,21 +297,15 @@ On 2026-10-22, no seeded term is inside the window. Helix (`hx26`, ends 2027-01-
 
 ---
 
-## W6a — Nurture from SDR Queue
+## W6 — Nurture sequence
+
+**Purpose:** put leads that aren't ready to buy into a nurture email sequence instead of leaving them in the SDR Queue. This covers low-intent leads (W1 creates their queue entry at Nurture) and leads an SDR moves to Nurture.
 
 | # | Block | Configuration |
 |---|---|---|
 | T | **List entry updated** | List: SDR Queue. Attribute: `status` |
-| 1 | **Filter** | New value is Nurture |
+| 1 | **If** | `{List entry updated > Updated Entry > Status > Stage title}` is Nurture |
 | 2 | **Enroll in sequence** | Nurture — 21 days. Recipient: `{T > parent record}`. Sender: test mailbox |
-
-## W6b — Nurture from lost deal
-
-| # | Block | Configuration |
-|---|---|---|
-| T | **Attribute value changed** | Object: Deals. Attribute: `stage` |
-| 1 | **Filter** | New value is Closed Lost AND `deal_type` is not Renewal AND `loss_reason` is not Bad fit. A bad-fit account should not get marketing email |
-| 2 | **If** | `champion` is not empty → **Enroll in sequence** (recipient `champion`). Else, if `economic_buyer` is not empty → enroll `economic_buyer`. Else end |
 
 **Leaving the sequence.**
 
@@ -312,8 +317,6 @@ On 2026-10-22, no seeded term is inside the window. Helix (`hx26`, ends 2027-01-
 | Case | Do | Expect |
 |---|---|---|
 | SDR nurture | Set a `+test` person's SDR Queue entry to Nurture | Enrolled. First email in the test inbox |
-| Lost deal | Move **Redwood Labs — New** to Closed Lost, reason Timing | Ivy Collins (champion) enrolled. Before the test, change Ivy's email to a `+test` alias: seed addresses use `example.com` and cannot receive mail |
-| Bad fit | Same, reason Bad fit | Not enrolled |
 | Re-engage | Submit the W1 form as the enrolled person, Book a demo | Leaves the sequence. New queue entry New |
 
 ---
@@ -323,7 +326,6 @@ On 2026-10-22, no seeded term is inside the window. Helix (`hx26`, ends 2027-01-
 Where the spec refines the build plan or field guide, the spec wins:
 
 - **Build plan §0:** date math in workflows is resolved. Adjust time supports months. The open point is only whether it accepts a date attribute (W3 1.2).
-- **Build plan §5, W2:** "Slack DM to SDR" becomes a channel post plus an Attio task. Attio's Slack app has no DM block.
 - **Build plan §5a:** "workflows default to read-only" is not in the current docs. Confirm it in the trial.
 - **Field guide:** `segment` is set by W1 from company size, then corrected by the SDR. `sourced_by` is set by the SDR only (W1 creates no deal). `health` Watch is set by the CSM only.
 - **Decision log:** add the Slack channel + task pattern, the W3 trigger and duplicate guard, the workspace relink on renewal, the W5 schedule over Delay until, and the W4 new-department option chosen.

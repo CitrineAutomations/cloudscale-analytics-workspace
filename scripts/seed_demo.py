@@ -267,7 +267,7 @@ ONBOARDING = [
 
 # person, status, SLA offset from now (hours), first touch offset (hours), DQ reason
 SDR_QUEUE = [
-    ("jake", "New", -2, None, None),  # SLA passed, still New: W2 overdue alert case
+    ("jake", "New", -2, None, None),  # SLA passed, still New: W2a overdue alert case
     ("laura", "Contacted", -20, -20.5, None),
     ("ivy", "Qualified", -96, -96.4, None),
     ("fiona", "Nurture", -400, -399, None),

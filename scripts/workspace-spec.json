@@ -35,7 +35,7 @@
        "options": ["High", "Low"],
        "description": "High = demo / contact sales form, Low = content download. Set by W1. Low intent goes to nurture."},
       {"slug": "first_touch_at", "title": "First touch at", "type": "timestamp",
-       "description": "When an SDR first contacted the person. Set by SDR or W2. Drives the speed-to-lead report against the 1-hour SLA."}
+       "description": "When an SDR first contacted the person. Set by SDR or W2b. Drives the speed-to-lead report against the 1-hour SLA."}
     ],
     "deals": [
       {"slug": "deal_type", "title": "Deal type", "type": "select",
@@ -149,9 +149,9 @@
      "attributes": [
        {"slug": "status", "title": "Status", "type": "status",
         "statuses": ["New", "Contacted", "Qualified", "Nurture", "Disqualified"],
-        "description": "New → Contacted → Qualified, or Nurture / Disqualified. Set by W1 (New) and SDR. Triggers W2 SLA alert and W6 nurture."},
+        "description": "New → Contacted → Qualified, or Nurture / Disqualified. Set by W1 (New) and SDR. Triggers W2a SLA alert and W6 nurture."},
        {"slug": "sla_due_at", "title": "SLA due at", "type": "timestamp",
-        "description": "When first contact is due (created + 1 hour). Set by W1. Used by the W2 overdue alert."},
+        "description": "When first contact is due (created + 1 hour). Set by W1. Used by the W2a overdue alert."},
        {"slug": "dq_reason", "title": "DQ reason", "type": "select",
         "options": ["Too small", "No data stack", "Student / job seeker", "Competitor", "Duplicate"],
         "description": "Why the lead was disqualified. Set by SDR. Lead-quality feedback to marketing."}

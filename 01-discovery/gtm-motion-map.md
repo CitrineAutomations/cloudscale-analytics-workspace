@@ -180,14 +180,14 @@ Deals ── People  (economic_buyer, champion, technical_evaluator + associated
 
 | # | Workflow | Motion | Integration |
 |---|---|---|---|
-| W1 | Inbound lead capture + routing | Stage 1 → 2 | **Typeform (native)** |
-| W2 | Speed-to-lead and handoff alerts | Stages 2–4 | **Slack (native)** |
-| W3 | Closed Won → create subscription, assign CSM, start onboarding | Stage 3 → 4 | Attio |
-| W4 | Usage threshold → expansion or risk alert + CSM task | Stage 5 | Attio + Slack |
+| W1 | Inbound lead (Typeform) | Stage 1 → 2 | **Typeform (native)** |
+| W2a / W2b | New Lead Alert / Speed-to-lead | Stages 2–4 | **Slack (native)** |
+| W3 / W3b | Closed Won handoff / Lost renewal → Churned | Stage 3 → 4 | Attio |
+| W4 | Usage Signal | Stage 5 | Attio + Slack |
 | n8n | Product usage → Attio `Product Workspaces` (with error handling), or company enrichment via Apollo | Stage 5 / 1 | n8n + Attio API |
 | Depth | Attio → warehouse sync (ETL) and usage back (rETL) | Stage 6 | Script / n8n |
 
-Pick 3+ for the build. W1 (Typeform) covers the native-integration rule.
+The final set adds W5 — Renewal opens and W6 — Nurture sequence. Full specs: [workflow-specs.md](../02-design/workflow-specs.md).
 
 ---
 
